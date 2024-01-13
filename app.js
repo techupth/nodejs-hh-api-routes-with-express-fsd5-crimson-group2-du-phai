@@ -53,11 +53,104 @@ app.get("/assignments/:assignmentId", (req, res) => {
 
 // ระบบที่ไว้สร้าง assignment
 app.post("/assignments", function (req, res) {
+  // สร้าง variable มาเก็บข้อมูล body ที่ client จะสร้าง
+  let newAssignmentFromClient = req.body;
   assignmentMockDatabase.push({
     id: assignmentMockDatabase[assignmentMockDatabase.length - 1].id + 1,
-    ...req.body,
+    ...newAssignmentFromClient,
   });
   return res.json({
     message: "New assignment has been created successfully",
+  });
+});
+
+// ระบบไว้ลบ assignment ด้วย id
+app.delete("/assignments/:assignmentId", function (req, res) {
+  // เก็บ id ที่ผู้ใช้ต้องการลบ
+  let assignmentIdFromClient = Number(req.params.assignmentId);
+
+  // เช็คก่อนว่ามี id ที่จะลบไหม
+  const hasFound = assignmentMockDatabase.find(
+    (item) => item.id === assignmentIdFromClient
+  );
+  // ใส่เงื่อนไขเข้าไป ถ้าไม่มี
+  if (!hasFound) {
+    return res.json({
+      message: "no data found",
+    });
+  }
+  // เอามาคัดกรอง
+  const newAssignments = assignmentMockDatabase.filter((item) => {
+    // return ที่ไม่ใช่ id ที่กรอกเข้ามา ด้วย !==
+    return item.id !== assignmentIdFromClient;
+  });
+  // เอามา reassign ใหม่ เพื่อ update ข้อมูล
+  assignmentMockDatabase = newAssignments;
+  // response กลับไปหาผู้ใช้
+  return res.json({
+    message: "Assignment has been deleted successfully",
+  });
+});
+
+// ระบบAPI ที่เอาไว้แก้ไขโพสต์
+app.put("/assignments/:assignmentId", (req, res) => {
+  // เก็บ id ที่user ส่งเข้ามา จะได้รู้ว่า update id ไหน
+  let assignmentIdFromClient = Number(req.params.assignmentId);
+
+  // พอได้id แล้วต่อไปต้องหา Index เพราะใน data มันเป็น Array
+  const assignmentIndex = assignmentMockDatabase.findIndex(
+    (item) => item.id === assignmentIdFromClient
+  );
+
+  // ทำการ Reassign Index นั้นๆ
+  assignmentMockDatabase[assignmentIndex] = {
+    id: assignmentIdFromClient,
+    ...req.body,
+  };
+
+  // Response ข้อความกลับไปหา Client
+  res.json({
+    message: `Assignment Id : ${assignmentIdFromClient}  has been updated successfully`,
+  });
+});
+
+// ระบบหา comment ด้วย id ของ assignment
+app.get("/assignments/:assignmentsId/comments", (req, res) => {
+  let commentIdFromClient = Number(req.params.assignmentsId);
+
+  const commentData = commentsMockDatabase.find(
+    (item) => item.id === commentIdFromClient
+  );
+
+  return res.json({
+    data: commentData,
+  });
+});
+
+// ระบบเพิ่ม comment เข้าไปใน Assignment
+app.post("/assignments/:assignmentsId/comments", (req, res) => {
+  let assignmentIdFromclient = Number(req.params.assignmentsId);
+
+  const commentData = {
+    id: commentsMockDatabase[commentsMockDatabase.length - 1].id + 1,
+    ...req.body,
+  };
+
+  //validate ก่อนว่ามี Assignment นั้นไหม
+  const hasAssignment = assignmentMockDatabase.find(
+    (item) => item.id === assignmentIdFromclient
+  );
+  // ถ้าไม่มี
+  if (!hasAssignment) {
+    return res.json({
+      message: "No assignment to add comment",
+    });
+  }
+
+  // เพิ่มcomment ใหม้เข้าไป
+  commentsMockDatabase.push(commentData);
+
+  return res.json({
+    message: `New comment of assignment id ${assignmentIdFromclient} has been created successfully`,
   });
 });
